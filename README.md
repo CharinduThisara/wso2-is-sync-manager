@@ -14,7 +14,7 @@ This script automates the deployment process for the WSO2 Identity Server by per
 Before running this script, ensure that you have the following:
 
 - WSO2 Identity Server 7.0.0 pack in the WSO2-IS-SYNC-MANAGER directory.
-- Java Development Kit (JDK) version 1.8 or later installed.
+- Java Development Kit (JDK) version 1.8.
 - Apache Maven installed.
 - Proper permissions to access and modify files in the WSO2 Identity Server directory.
 
