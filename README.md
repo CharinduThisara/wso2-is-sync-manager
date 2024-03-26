@@ -26,8 +26,9 @@ Before running this script, ensure that you have the following:
 home_path='path/to/wso2is-7.0.0'
 ```
 
-2. Then run...
+2. Add credentials of Cosmos DB to .example.env and update the file name to .env
+
+3. Then run...
 ```bash
 ./Build.sh
 ```
-
