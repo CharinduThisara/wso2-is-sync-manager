@@ -110,7 +110,12 @@ public class SyncTool {
             System.out.println();
 
             try {
-                jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list.split(","), claimsMap, profile, false);
+                if (jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
+                    System.out.println("User already exists in the system. Updating user...");
+                    jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list.split(","), claimsMap, profile, false);
+                } else {
+                    System.out.println("User does not exist in the system. Adding user...");
+                }
             } catch (UserStoreException e) {
                 System.out.println("Error adding user: " + e.getMessage());
             }
