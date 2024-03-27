@@ -3,13 +3,17 @@ package com.sync.tool;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
+import org.wso2.carbon.user.core.common.User;
+import org.wso2.carbon.user.core.UserStoreException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.naming.java.javaURLContextFactory;
 
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
+import java.util.Map;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -25,6 +29,7 @@ public class SyncTool {
     private String cassandraKeyspace;
     private String cassandraTable;
     private String region;
+    private CustomJDBCUserStoreManager jdbcUserStoreManager;
 
     public void connectCosmos() {
 
@@ -70,13 +75,22 @@ public class SyncTool {
 
     }
 
-    public static void printData(ResultSet resultSet) {
+   
+
+    public void printData(ResultSet resultSet) {
+        if (jdbcUserStoreManager==null) {
+            System.out.println("javaURLContextFactory is null");
+            this.jdbcUserStoreManager = new CustomJDBCUserStoreManager();
+        }
+        
+        
         for (Row row : resultSet) {
 
             String user_id = row.getString("user_id");
             String username = row.getString("username");
             String credential = row.getString("credential");
             String role_list = row.getSet("role_list", String.class).toString();
+            Map <String, String> claimsMap = row.getMap("claims", String.class, String.class);
             String claims = row.getMap("claims", String.class, String.class).toString();
             String profile = row.getString("profile");
             boolean central_us = row.getBoolean("central_us");
@@ -91,11 +105,18 @@ public class SyncTool {
             System.out.println("Central US: " + central_us);
             System.out.println("East US: " + east_us);
 
-        System.out.println();
+            System.out.println();
 
             System.out.println();
+
+            try {
+                jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list.split(","), claimsMap, profile, false);
+            } catch (UserStoreException e) {
+                System.out.println("Error adding user: " + e.getMessage());
+            }
         }
-    }
+    
+}
 
     public void read() {
         
@@ -124,6 +145,8 @@ public class SyncTool {
                 System.out.println();
                 log.info("Read data from Cassandra");
             }
+
+
 
         } catch (Exception e) {
             System.err.println("Error: " + e);
