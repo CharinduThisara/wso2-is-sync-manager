@@ -18,12 +18,12 @@ import java.util.concurrent.Executors;
 public class SyncToolService {
 
     private static final Log log = LogFactory.getLog(SyncToolService.class);
-    private static RealmService realmService;
     private static SyncTool syncTool;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Activate
     protected void activate(ComponentContext context) {
+
         BundleContext bundleContext = context.getBundleContext();
         syncTool = new SyncTool();
         bundleContext.registerService(SyncTool.class.getName(), syncTool, null);
@@ -48,21 +48,21 @@ public class SyncToolService {
     }
 
     @Reference(
-        name = "realm.service",
+        name = "user.realmservice.default",
         service = RealmService.class,
         cardinality = ReferenceCardinality.MANDATORY,
         policy = ReferencePolicy.DYNAMIC,
         unbind = "unsetRealmService"
     )
     protected void setRealmService(RealmService realmService) {
-        SyncToolService.realmService = realmService;
+        SyncToolServiceDataHolder.getInstance().setRealmService(realmService);;
     }
 
     protected void unsetRealmService(RealmService realmService) {
-        SyncToolService.realmService = null;
+        SyncToolServiceDataHolder.getInstance().setRealmService(null);
     }
     
     public static RealmService getRealmService() {
-        return realmService;
+        return SyncToolServiceDataHolder.getInstance().getRealmService();
     }
 }

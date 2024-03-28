@@ -16,6 +16,8 @@ public class CustomJDBCUserStoreManager extends UniqueIDJDBCUserStoreManager {
                     // Assign username to the username claim.
                     claims = addUserNameAttribute(userName, claims);
                     // Assign userID to the userid claim.
+
+                    
                     claims = addUserIDAttribute(userID, claims);
                     persistUser(userID, userName, credential, roleList, claims, profileName, requirePasswordChange);
             

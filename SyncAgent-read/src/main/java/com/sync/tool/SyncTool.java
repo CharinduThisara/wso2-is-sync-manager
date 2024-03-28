@@ -3,7 +3,10 @@ package com.sync.tool;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.sync.tool.internal.SyncToolServiceDataHolder;
+
 import org.wso2.carbon.user.core.common.User;
+import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -86,7 +89,8 @@ public class SyncTool {
         for (Row row : resultSet) {
             try {
                 if(jdbcUserStoreManager==null){
-                    this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserRealm().getRealmConfiguration(), PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserRealm().getUserStoreManager().getTenantId());
+                    RealmService realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
+                    this.jdbcUserStoreManager = new CustomJDBCUserStoreManager((RealmConfiguration)realmService.getUserRealm(null), realmService.getTenantManager().getTenantId("carbon.super"));
                 }
             } catch (Exception e) {
                 System.out.println("Error creating JDBCUserStoreManager: " + e.getMessage());
