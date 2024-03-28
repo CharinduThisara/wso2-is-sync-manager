@@ -17,7 +17,7 @@ rm $home_path/repository/components/dropins/org.wso2.custom.user.operation.event
 cp SyncAgent-write/target/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar $home_path/repository/components/dropins/
 
 echo "Copying the .env configuration files to the WSO2 IS 7.0.0"
-# rm $home_path/.env
+rm $home_path/.env
 cp .env $home_path/
 
 echo "Copying the reference.conf configuration files to the WSO2 IS 7.0.0"

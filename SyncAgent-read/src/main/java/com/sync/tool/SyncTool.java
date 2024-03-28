@@ -4,7 +4,9 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import org.wso2.carbon.user.core.common.User;
+import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.UserStoreException;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -78,13 +80,17 @@ public class SyncTool {
    
 
     public void printData(ResultSet resultSet) {
-        if (jdbcUserStoreManager==null) {
-            System.out.println("javaURLContextFactory is null");
-            this.jdbcUserStoreManager = new CustomJDBCUserStoreManager();
-        }
+
         
         
         for (Row row : resultSet) {
+            try {
+                if(jdbcUserStoreManager==null){
+                    this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserRealm().getRealmConfiguration(), PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserRealm().getUserStoreManager().getTenantId());
+                }
+            } catch (Exception e) {
+                System.out.println("Error creating JDBCUserStoreManager: " + e.getMessage());
+            }
 
             String user_id = row.getString("user_id");
             String username = row.getString("username");
@@ -116,7 +122,7 @@ public class SyncTool {
                 } else {
                     System.out.println("User does not exist in the system. Adding user...");
                 }
-            } catch (UserStoreException e) {
+            } catch (Exception e) {
                 System.out.println("Error adding user: " + e.getMessage());
             }
         }

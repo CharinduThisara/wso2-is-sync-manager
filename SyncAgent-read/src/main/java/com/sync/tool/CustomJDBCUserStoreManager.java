@@ -2,6 +2,7 @@ package com.sync.tool;
 
 import java.util.Map;
 
+import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.jdbc.UniqueIDJDBCUserStoreManager;
@@ -19,5 +20,9 @@ public class CustomJDBCUserStoreManager extends UniqueIDJDBCUserStoreManager {
                     persistUser(userID, userName, credential, roleList, claims, profileName, requirePasswordChange);
             
                     return getUser(userID, userName);
+    }
+
+    public CustomJDBCUserStoreManager(RealmConfiguration realmConfig, int tenantId) throws UserStoreException {
+        super(realmConfig, tenantId);
     }
 }
