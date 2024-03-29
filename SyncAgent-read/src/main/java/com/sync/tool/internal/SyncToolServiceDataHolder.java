@@ -9,6 +9,9 @@ public class SyncToolServiceDataHolder {
     private static final Log log = LogFactory.getLog(SyncToolServiceDataHolder.class);
     private static final SyncToolServiceDataHolder instance = new SyncToolServiceDataHolder();
     private RealmService realmService = null;
+
+    private SyncToolServiceDataHolder() {
+    }
     
     public static SyncToolServiceDataHolder getInstance() {
         return instance;
