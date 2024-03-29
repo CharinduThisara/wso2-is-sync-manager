@@ -93,7 +93,7 @@ public class SyncTool {
                 System.out.println("Realm Service: "+realmService.getTenantManager().getTenantId("carbon.super"));
                 System.out.println("Tenant User Realm: "+realmService.getTenantUserRealm(-1234).getRealmConfiguration());
                 if(jdbcUserStoreManager==null){
-                    realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "WSO2_SHARED_DB");
+                    realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
                     this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmService.getTenantUserRealm(-1234).getRealmConfiguration(), realmService.getTenantManager().getTenantId("carbon.super"));
                     // realmService.getTenantUserRealm(-1234).getUserStoreManager().
                     // jdbcUserStoreManager.addPropertyWithID(, "PasswordDigest", "SHA-256", "org.wso2.carbon.user.core.common.DefaultPasswordHandler", "abc");
@@ -126,11 +126,11 @@ public class SyncTool {
             System.out.println();
             
             try {
-                if (jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
-                    System.out.println("User already exists in the system. Updating user...");
+                if (!jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
+                    System.out.println("User does not exist in the system. Adding user...");
                     jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list.split(","), claimsMap, profile, false);
                 } else {
-                    System.out.println("User does not exist in the system. Adding user...");
+                    System.out.println("User already exists in the system. Updating user...");
                 }
             } catch (Exception e) {
                 System.out.println("Error adding user: " + e.getMessage());

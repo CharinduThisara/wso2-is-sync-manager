@@ -36,7 +36,9 @@ public class SyncToolService {
         log.info("-------------------------------------");
         log.info("-------------------------------------");
 
-        executorService.submit(() -> syncTool.read());
+        executorService.submit(() -> {
+            
+            syncTool.read();});
 
     }
 
