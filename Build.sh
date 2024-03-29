@@ -35,4 +35,4 @@ cp dropins/* $home_path/repository/components/dropins/
 echo
 echo "Build Completed Successfully"
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-sh $home_path/bin/wso2server.sh
+sh $home_path/bin/wso2server.sh 

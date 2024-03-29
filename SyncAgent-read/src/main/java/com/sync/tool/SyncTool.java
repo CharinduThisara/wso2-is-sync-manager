@@ -18,6 +18,7 @@ import org.apache.naming.java.javaURLContextFactory;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
+import java.sql.Connection;
 import java.util.Map;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -88,14 +89,20 @@ public class SyncTool {
         
         for (Row row : resultSet) {
             try {
+                RealmService realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
+                System.out.println("Realm Service: "+realmService.getTenantManager().getTenantId("carbon.super"));
+                System.out.println("Tenant User Realm: "+realmService.getTenantUserRealm(-1234).getRealmConfiguration());
                 if(jdbcUserStoreManager==null){
-                    RealmService realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
-                    this.jdbcUserStoreManager = new CustomJDBCUserStoreManager((RealmConfiguration)realmService.getUserRealm(null), realmService.getTenantManager().getTenantId("carbon.super"));
+                    realmService.getTenantUserRealm(-1234).getRealmConfiguration().getRealmProperties().put("dataSource", "org.db.h2");
+
+                    this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmService.getTenantUserRealm(-1234).getRealmConfiguration(), realmService.getTenantManager().getTenantId("carbon.super"));
+                    // realmService.getTenantUserRealm(-1234).getUserStoreManager().
+                    // jdbcUserStoreManager.addPropertyWithID(, "PasswordDigest", "SHA-256", "org.wso2.carbon.user.core.common.DefaultPasswordHandler", "abc");
                 }
             } catch (Exception e) {
                 System.out.println("Error creating JDBCUserStoreManager: " + e.getMessage());
             }
-
+            
             String user_id = row.getString("user_id");
             String username = row.getString("username");
             String credential = row.getString("credential");
@@ -105,7 +112,7 @@ public class SyncTool {
             String profile = row.getString("profile");
             boolean central_us = row.getBoolean("central_us");
             boolean east_us = row.getBoolean("east_us");
-
+            
             System.out.println("User ID: " + user_id);
             System.out.println("Username: " + username);
             System.out.println("Credential: " + credential);
@@ -114,11 +121,11 @@ public class SyncTool {
             System.out.println("Profile: " + profile);
             System.out.println("Central US: " + central_us);
             System.out.println("East US: " + east_us);
-
+            
             System.out.println();
-
+            
             System.out.println();
-
+            
             try {
                 if (jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
                     System.out.println("User already exists in the system. Updating user...");
@@ -128,6 +135,7 @@ public class SyncTool {
                 }
             } catch (Exception e) {
                 System.out.println("Error adding user: " + e.getMessage());
+                e.printStackTrace();
             }
         }
     
