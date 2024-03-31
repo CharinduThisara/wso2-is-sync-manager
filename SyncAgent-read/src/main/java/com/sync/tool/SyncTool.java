@@ -122,6 +122,9 @@ public class SyncTool {
             boolean central_us = row.getBoolean("central_us");
             boolean east_us = row.getBoolean("east_us");
             
+            System.out.println();
+            System.out.println();
+
             System.out.println("User ID: " + user_id);
             System.out.println("Username: " + username);
             System.out.println("Credential: " + credential);
@@ -133,7 +136,6 @@ public class SyncTool {
             
             System.out.println();
             
-            System.out.println();
             
             try {
                 if (!jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
@@ -165,13 +167,17 @@ public class SyncTool {
             String query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraTable, central_us);
 
             while (true) {
+                System.out.println("Reading data from Cassandra...");
                 ResultSet resultSet = session.execute(query);
+                System.out.println("Data read from Cassandra.");
+
+                // Write data to WSO2 IS
                 writeToDB(resultSet);
+
+                
                 Thread.sleep(1000);
                 System.out.println();
-                System.out.println("Reading data from Cassandra...");
                 System.out.println();
-                log.info("Read data from Cassandra");
             }
 
         } catch (Exception e) {
