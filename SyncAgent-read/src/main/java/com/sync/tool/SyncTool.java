@@ -108,7 +108,7 @@ public class SyncTool {
 
     }
 
-    public void printData(ResultSet resultSet) {
+    public void writeToDB(ResultSet resultSet) {
     
         for (Row row : resultSet) {
             
@@ -166,7 +166,7 @@ public class SyncTool {
 
             while (true) {
                 ResultSet resultSet = session.execute(query);
-                printData(resultSet);
+                writeToDB(resultSet);
                 Thread.sleep(1000);
                 System.out.println();
                 System.out.println("Reading data from Cassandra...");
