@@ -5,9 +5,13 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.sync.tool.internal.SyncToolServiceDataHolder;
 
+import org.wso2.carbon.user.core.claim.ClaimManager;
+import org.wso2.carbon.user.core.claim.inmemory.InMemoryClaimManager;
+
 import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.api.RealmConfiguration;
+import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 
@@ -19,11 +23,14 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
 import java.sql.Connection;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+import javax.sql.DataSource;
+
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 
 import io.github.cdimascio.dotenv.Dotenv;
@@ -36,6 +43,7 @@ public class SyncTool {
     private String cassandraTable;
     private String region;
     private CustomJDBCUserStoreManager jdbcUserStoreManager;
+    RealmService realmService;
 
     public void connectCosmos() {
 
@@ -85,22 +93,25 @@ public class SyncTool {
 
     public void printData(ResultSet resultSet) {
 
-        
-        
-        for (Row row : resultSet) {
-            try {
-                RealmService realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
+        realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
+
+        try{
+
+            if(jdbcUserStoreManager==null){
+                realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
+                this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmService.getTenantUserRealm(-1234).getRealmConfiguration(),new HashMap<String,Object>(),new InMemoryClaimManager(),null,(UserRealm) realmService.getTenantUserRealm(-1234),new Integer(realmService.getTenantManager().getTenantId("carbon.super")));
+                // realmService.getTenantUserRealm(-1234).getUserStoreManager().
+                // jdbcUserStoreManager.addPropertyWithID(, "PasswordDigest", "SHA-256", "org.wso2.carbon.user.core.common.DefaultPasswordHandler", "abc");
                 System.out.println("Realm Service: "+realmService.getTenantManager().getTenantId("carbon.super"));
                 System.out.println("Tenant User Realm: "+realmService.getTenantUserRealm(-1234).getRealmConfiguration());
-                if(jdbcUserStoreManager==null){
-                    realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
-                    this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmService.getTenantUserRealm(-1234).getRealmConfiguration(), realmService.getTenantManager().getTenantId("carbon.super"));
-                    // realmService.getTenantUserRealm(-1234).getUserStoreManager().
-                    // jdbcUserStoreManager.addPropertyWithID(, "PasswordDigest", "SHA-256", "org.wso2.carbon.user.core.common.DefaultPasswordHandler", "abc");
-                }
-            } catch (Exception e) {
-                System.out.println("Error creating JDBCUserStoreManager: " + e.getMessage());
+                System.out.println(this.jdbcUserStoreManager.getClaimManager());
             }
+        }catch(Exception e){
+            System.out.println("Error creating JDBCUserStoreManager: "+e.getMessage());
+            e.printStackTrace();
+        }
+    
+        for (Row row : resultSet) {
             
             String user_id = row.getString("user_id");
             String username = row.getString("username");
@@ -128,7 +139,15 @@ public class SyncTool {
             try {
                 if (!jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
                     System.out.println("User does not exist in the system. Adding user...");
-                    jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list.split(","), claimsMap, profile, false);
+                    // String[ ] role_list_array = null;
+                    // if (role_list != null && !role_list.isEmpty()) {
+                    //     role_list_array = role_list.split(",");
+                    // }
+                    // else{
+                    //     role_list_array = new String[1];
+                    //     role_list_array[0] = "everyone";
+                    // }
+                    jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, new String[0], claimsMap, profile, false);
                 } else {
                     System.out.println("User already exists in the system. Updating user...");
                 }
@@ -167,8 +186,6 @@ public class SyncTool {
                 System.out.println();
                 log.info("Read data from Cassandra");
             }
-
-
 
         } catch (Exception e) {
             System.err.println("Error: " + e);
