@@ -98,7 +98,7 @@ public class SyncTool {
         try{
 
             if(jdbcUserStoreManager==null){
-                realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
+                // realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
                 this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmService.getTenantUserRealm(-1234).getRealmConfiguration(),new HashMap<String,Object>(),new InMemoryClaimManager(),null,(UserRealm) realmService.getTenantUserRealm(-1234),new Integer(realmService.getTenantManager().getTenantId("carbon.super")));
                 // realmService.getTenantUserRealm(-1234).getUserStoreManager().
                 // jdbcUserStoreManager.addPropertyWithID(, "PasswordDigest", "SHA-256", "org.wso2.carbon.user.core.common.DefaultPasswordHandler", "abc");
