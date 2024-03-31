@@ -36,10 +36,9 @@ public class SyncToolService {
         log.info("-------------------------------------");
         log.info("-------------------------------------");
 
-        executorService.submit(() -> {
-            
+        syncTool.init();
+        executorService.submit(() -> {    
             syncTool.read();});
-
     }
 
     @Deactivate

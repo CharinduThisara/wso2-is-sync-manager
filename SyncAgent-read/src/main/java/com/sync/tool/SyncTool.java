@@ -8,28 +8,22 @@ import com.sync.tool.internal.SyncToolServiceDataHolder;
 import org.wso2.carbon.user.core.claim.ClaimManager;
 import org.wso2.carbon.user.core.claim.inmemory.InMemoryClaimManager;
 
-import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.UserRealm;
-import org.wso2.carbon.user.core.UserStoreException;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.naming.java.javaURLContextFactory;
 
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
-import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-import javax.sql.DataSource;
 
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 
@@ -45,7 +39,32 @@ public class SyncTool {
     private CustomJDBCUserStoreManager jdbcUserStoreManager;
     RealmService realmService;
 
-    public void connectCosmos() {
+    public void init() {
+        connectCosmos();
+        realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
+        try{
+
+            if(jdbcUserStoreManager==null){
+                // realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
+
+                RealmConfiguration realmConfig = realmService.getTenantUserRealm(-1234).getRealmConfiguration();
+                Map<String, Object> properties = new HashMap<String, Object>();
+                ClaimManager claimManager = new InMemoryClaimManager();
+                UserRealm realm = (UserRealm) realmService.getTenantUserRealm(-1234);
+                Integer tenantId = new Integer(realmService.getTenantManager().getTenantId("carbon.super"));
+
+                this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmConfig, properties, claimManager, null, realm, tenantId);
+                System.out.println("Realm Service: "+realmService.getTenantManager().getTenantId("carbon.super"));
+                System.out.println("Tenant User Realm: "+realmService.getTenantUserRealm(-1234).getRealmConfiguration());
+                System.out.println(this.jdbcUserStoreManager.getClaimManager());
+            }
+        }catch(Exception e){
+            System.out.println("Error creating JDBCUserStoreManager: "+e.getMessage());
+            e.printStackTrace();
+        }   
+    }
+
+    private void connectCosmos() {
 
         SSLContext sc = null;
         try{
@@ -89,34 +108,14 @@ public class SyncTool {
 
     }
 
-   
-
     public void printData(ResultSet resultSet) {
-
-        realmService = SyncToolServiceDataHolder.getInstance().getRealmService();
-
-        try{
-
-            if(jdbcUserStoreManager==null){
-                // realmService.getTenantUserRealm(-1234).getRealmConfiguration().getUserStoreProperties().put("dataSource", "jdbc/SHARED_DB");
-                this.jdbcUserStoreManager = new CustomJDBCUserStoreManager(realmService.getTenantUserRealm(-1234).getRealmConfiguration(),new HashMap<String,Object>(),new InMemoryClaimManager(),null,(UserRealm) realmService.getTenantUserRealm(-1234),new Integer(realmService.getTenantManager().getTenantId("carbon.super")));
-                // realmService.getTenantUserRealm(-1234).getUserStoreManager().
-                // jdbcUserStoreManager.addPropertyWithID(, "PasswordDigest", "SHA-256", "org.wso2.carbon.user.core.common.DefaultPasswordHandler", "abc");
-                System.out.println("Realm Service: "+realmService.getTenantManager().getTenantId("carbon.super"));
-                System.out.println("Tenant User Realm: "+realmService.getTenantUserRealm(-1234).getRealmConfiguration());
-                System.out.println(this.jdbcUserStoreManager.getClaimManager());
-            }
-        }catch(Exception e){
-            System.out.println("Error creating JDBCUserStoreManager: "+e.getMessage());
-            e.printStackTrace();
-        }
     
         for (Row row : resultSet) {
             
             String user_id = row.getString("user_id");
             String username = row.getString("username");
             String credential = row.getString("credential");
-            String role_list = row.getSet("role_list", String.class).toString();
+            String[] role_list = row.getSet("role_list", String.class).toArray(new String[0]);
             Map <String, String> claimsMap = row.getMap("claims", String.class, String.class);
             String claims = row.getMap("claims", String.class, String.class).toString();
             String profile = row.getString("profile");
@@ -139,17 +138,9 @@ public class SyncTool {
             try {
                 if (!jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
                     System.out.println("User does not exist in the system. Adding user...");
-                    // String[ ] role_list_array = null;
-                    // if (role_list != null && !role_list.isEmpty()) {
-                    //     role_list_array = role_list.split(",");
-                    // }
-                    // else{
-                    //     role_list_array = new String[1];
-                    //     role_list_array[0] = "everyone";
-                    // }
-                    jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, new String[0], claimsMap, profile, false);
+                    jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list, claimsMap, profile, false);
                 } else {
-                    System.out.println("User already exists in the system. Updating user...");
+                    System.out.println("User already exists in the system...");
                 }
             } catch (Exception e) {
                 System.out.println("Error adding user: " + e.getMessage());
@@ -161,11 +152,7 @@ public class SyncTool {
 
     public void read() {
         
-        // set a variable to boolean false if region is central_us
-        
-        
         try {
-            connectCosmos();
             boolean central_us;
             if (region.equals("Central US")) {
                 central_us = false;
