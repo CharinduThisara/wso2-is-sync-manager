@@ -1,5 +1,6 @@
 package org.wso2.custom.user.operation.event.listener;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,6 +45,7 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
     private CqlSession session;
     private String cassandraKeyspace;
     private String cassandraTable;   
+    private String region;
     
         
     public CustomUserOperationEventListener() {
@@ -98,7 +100,7 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
             COSMOS_CONFIG_PATH = dotenv.get("COSMOS_CONFIG_PATH");
             String cassandraHost = dotenv.get("COSMOS_CONTACT_POINT");
             int cassandraPort = Integer.parseInt(dotenv.get("COSMOS_PORT"));
-            String region = dotenv.get("COSMOS_REGION");
+            region = dotenv.get("COSMOS_REGION");
             String cassandraUsername = dotenv.get("COSMOS_USER_NAME");
             String cassandraPassword = dotenv.get("COSMOS_PASSWORD");
             cassandraKeyspace = dotenv.get("COSMOS_KEYSPACE");
@@ -176,6 +178,15 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
         }
     }
 
+    @Override
+    public boolean doPostAddGroup(String groupName, List<String> userIDs, UserStoreManager userStoreManager)
+            throws UserStoreException {
+
+        System.out.println("Group added successfully " + groupName);
+
+        return true;
+    }
+
     
     @Override
     public boolean doPostAddUser(String userName, Object credential, String[] roleList, Map<String, String> claims, String profile, UserStoreManager userStoreManager) throws UserStoreException {
@@ -200,7 +211,15 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
 
             String userId = claims.get("http://wso2.org/claims/userid");
             Set<String> roleSet = new HashSet<>(Arrays.asList(roleList));
-            
+            boolean central_us;
+
+            if(region.equals("Central US")){
+                central_us = true;
+            }
+            else{
+                central_us = false;
+            }
+
             // Execute the insert statement
             session.execute(preparedStatement.bind(
                     userId,                // user_id
@@ -209,8 +228,8 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
                     roleSet,              // role_list
                     claims,               // claims
                     profile,
-                    false,
-                    true
+                    central_us,
+                    !central_us
                     ));            // profile
 
         }
