@@ -274,7 +274,6 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
 
         final String INSERT_USER_QUERY = "INSERT INTO "+ cassandraKeyspace +"."+cassandraUserTable+" (user_id, username, credential, role_list, claims, profile, central_us, east_us) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        
         try{
 
             // Prepare the insert statement
@@ -284,24 +283,19 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
             Set<String> roleSet = new HashSet<>(Arrays.asList(roleList));
             boolean central_us;
 
-            if(region.equals("Central US")){
-                central_us = true;
-            }
-            else{
-                central_us = false;
-            }
-
+            central_us = region.equals("Central US");
+            
             // Execute the insert statement
             session.execute(preparedStatement.bind(
-                    userId,                // user_id
-                    userName,             // username
-                    credential.toString(),// credential
-                    roleSet,              // role_list
-                    claims,               // claims
+                    userId,                
+                    userName,
+                    credential.toString(),
+                    roleSet,              
+                    claims,               
                     profile,
                     central_us,
                     !central_us
-                    ));            // profile
+                    ));
 
         }
         catch(Exception e){
