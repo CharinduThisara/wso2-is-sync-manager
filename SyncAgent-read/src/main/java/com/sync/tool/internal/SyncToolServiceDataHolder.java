@@ -7,7 +7,11 @@ import org.apache.commons.logging.LogFactory;
 public class SyncToolServiceDataHolder {
 
     private static final Log log = LogFactory.getLog(SyncToolServiceDataHolder.class);
+
+    // Singleton instance
     private static final SyncToolServiceDataHolder instance = new SyncToolServiceDataHolder();
+
+    // Realm Service instance
     private RealmService realmService = null;
 
     private SyncToolServiceDataHolder() {

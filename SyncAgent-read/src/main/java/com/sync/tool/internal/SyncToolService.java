@@ -36,15 +36,23 @@ public class SyncToolService {
         log.info("-------------------------------------");
         log.info("-------------------------------------");
 
+        // Initialize the SyncTool cosmos session 
         syncTool.init();
+
+        // Start the executor service thread
         executorService.submit(() -> {    
-            syncTool.read();});
+            syncTool.read();
+        });
     }
 
     @Deactivate
     protected void deactivate(ComponentContext context) {
         log.info("SyncTool bundle is deactivated");
+
+        // Close the SyncTool cosmos session
         syncTool.close();
+
+        // Shutdown the executor service thread
         executorService.shutdown();
     }
 
@@ -56,10 +64,12 @@ public class SyncToolService {
         unbind = "unsetRealmService"
     )
     protected void setRealmService(RealmService realmService) {
+        log.info("Setting the Realm Service");
         SyncToolServiceDataHolder.getInstance().setRealmService(realmService);;
     }
 
     protected void unsetRealmService(RealmService realmService) {
+        log.info("Unsetting the Realm Service");
         SyncToolServiceDataHolder.getInstance().setRealmService(null);
     }
     
