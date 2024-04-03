@@ -108,6 +108,27 @@ public class SyncTool {
 
     }
 
+    public void updateRoles(ResultSet resultSet) {
+        for (Row row : resultSet) {
+            String user_id = row.getString("user_id");
+            // make role_list from the field role_name, which is a string
+            String[] role_list = row.getString("role_name").split(",");
+
+
+            // empty role list
+            String [] empty_role_list = new String[0];
+            System.out.println("User ID: " + user_id);
+            System.out.println("Role List: " + role_list);
+            try {
+                if (jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) 
+                    jdbcUserStoreManager.doUpdateRoleListOfUserWithID(user_id, empty_role_list, role_list);
+            } catch (Exception e) {
+                System.out.println("Error updating roles: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void writeToDB(ResultSet resultSet) {
     
         for (Row row : resultSet) {
@@ -165,19 +186,21 @@ public class SyncTool {
             System.out.println("Connected to Cassandra.");
 
             String query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraTable, central_us);
+            String role_query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraTable, central_us);
 
             while (true) {
-                System.out.println("Reading data from Cassandra...");
+                // System.out.println("Reading data from Cassandra...");
                 ResultSet resultSet = session.execute(query);
-                System.out.println("Data read from Cassandra.");
+                // System.out.println("Data read from Cassandra.");
 
                 // Write data to WSO2 IS
                 writeToDB(resultSet);
-
+                ResultSet roleResultSet = session.execute(role_query);
+                updateRoles(roleResultSet);
                 
                 Thread.sleep(1000);
-                System.out.println();
-                System.out.println();
+                // System.out.println();
+                // System.out.println();
             }
 
         } catch (Exception e) {

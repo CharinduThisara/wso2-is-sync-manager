@@ -14,6 +14,7 @@ import org.wso2.carbon.user.core.common.*;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
 import groovy.transform.builder.InitializerStrategy.SET;
@@ -144,6 +145,16 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
                                 + "profile TEXT, "
                                 + "PRIMARY KEY ((central_us, east_us), user_id))";
 
+                                
+        String roleTableQuery = "CREATE TABLE IF NOT EXISTS " + cassandraKeyspace + ".roles (\n" + //
+                                "  role_name TEXT,\n" + //
+                                "  user_id TEXT,\n" + //
+                                "  central_us BOOLEAN,\n" + //
+                                "  east_us BOOLEAN,\n" + //
+                                "  PRIMARY KEY ((central_us, east_us), role_name, user_id)\n" + //
+                                ");";
+                                
+        session.execute(roleTableQuery);
         session.execute(createTableQuery);
   
     }
@@ -185,6 +196,45 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
         System.out.println("Group added successfully " + groupName);
 
         return true;
+    }
+
+    @Override
+    public boolean doPostUpdateUserListOfRoleWithID(String roleName, String[] deletedUsers, String[] newUsers,
+            UserStoreManager userStoreManager) throws UserStoreException {
+                System.out.println("doPostUpdateUserListOfRoleWithID");
+                System.out.println("Role Name: " + roleName);
+                System.out.println("Deleted Users: ");
+                for (String userId : deletedUsers) {
+                    System.out.println(userId);
+                }
+                System.out.println("New Users: ");
+                for (String userId : newUsers) {
+                    System.out.println(userId);
+                }
+
+                // get first user id
+                String userId = newUsers[0];
+                final String INSERT_ROLE_QUERY = "INSERT INTO sync.roles (role_name, user_id, central_us, east_us) VALUES (?, ?, ?, ?)";
+
+                try {
+                // Writing data to the user_data table
+                PreparedStatement preparedStatement = session.prepare(INSERT_ROLE_QUERY);
+                boolean central_us = region.equals("Central US");
+                boolean east_us = !central_us;
+                BoundStatement boundStatement = preparedStatement.bind(
+                    roleName,                // role_name
+                    userId,             // user_id
+                    central_us,               // central_us
+                    east_us);             // east_us
+                session.execute(boundStatement);
+    
+                System.out.println("Data written to roles table successfully.");
+               
+            } catch (Exception e) {
+                System.err.println("Error: " + e);
+            }
+                    
+                return true;
     }
 
     

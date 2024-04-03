@@ -6,8 +6,10 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.*;
 import org.wso2.carbon.user.core.listener.UserOperationEventListener;
+import org.wso2.carbon.user.core.listener.GroupOperationEventListener;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.custom.user.operation.event.listener.CustomUserOperationEventListener;
+import org.wso2.custom.user.operation.event.listener.CustomGroupOperationEventListener;
 
 @Component(
         name = "org.wso2.custom.user.operation.event.listener",
@@ -22,6 +24,7 @@ public class CustomUserOperationEventListenerServiceComponent {
     protected void activate(ComponentContext context) {
         BundleContext bundleContext = context.getBundleContext();
         bundleContext.registerService(UserOperationEventListener.class.getName(), new CustomUserOperationEventListener(), null);
+        bundleContext.registerService(GroupOperationEventListener.class.getName(), new CustomGroupOperationEventListener(), null);
         log.info("CustomUserOperationEventListener bundle activated successfully..");
         log.info("..................................................................................................");
         log.info("..................................................................................................");
