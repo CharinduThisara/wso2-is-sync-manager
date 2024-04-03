@@ -2,9 +2,11 @@ package org.wso2.custom.user.operation.event.listener.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.*;
+
 import org.wso2.carbon.user.core.listener.UserOperationEventListener;
 import org.wso2.carbon.user.core.listener.GroupOperationEventListener;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -19,12 +21,19 @@ public class CustomUserOperationEventListenerServiceComponent {
 
     private static Log log = LogFactory.getLog(CustomUserOperationEventListenerServiceComponent.class);
     private static RealmService realmService;
+    CustomGroupOperationEventListener customGroupOperationEventListener;
+    CustomUserOperationEventListener customUserOperationEventListener;
 
     @Activate
     protected void activate(ComponentContext context) {
         BundleContext bundleContext = context.getBundleContext();
-        bundleContext.registerService(UserOperationEventListener.class.getName(), new CustomUserOperationEventListener(), null);
-        bundleContext.registerService(GroupOperationEventListener.class.getName(), new CustomGroupOperationEventListener(), null);
+
+        customGroupOperationEventListener = new CustomGroupOperationEventListener();
+        customUserOperationEventListener = new CustomUserOperationEventListener();
+
+        bundleContext.registerService(UserOperationEventListener.class.getName(), customUserOperationEventListener, null);
+        bundleContext.registerService(GroupOperationEventListener.class.getName(), customGroupOperationEventListener, null);
+
         log.info("CustomUserOperationEventListener bundle activated successfully..");
         log.info("..................................................................................................");
         log.info("..................................................................................................");
@@ -35,6 +44,9 @@ public class CustomUserOperationEventListenerServiceComponent {
 
     @Deactivate
     protected void deactivate(ComponentContext context) {
+
+        // Closing the Cosmos session
+        customUserOperationEventListener.close();
         if (log.isDebugEnabled()) {
             log.info("CustomUserStoreManager bundle is deactivated");
         }
