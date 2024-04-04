@@ -23,7 +23,7 @@ public class CustomJDBCUserStoreManager extends UniqueIDJDBCUserStoreManager {
     public User doAddUserWithCustomID(String UUID, String userName, Object credential, String[] roleList, Map<String, String> claims,
                         String profileName, boolean requirePasswordChange) throws UserStoreException {
                             
-                            // Assign UUID to the userid claim.
+                             // Assign the Custom UUID
                             String userID = UUID;
                             
                             // Assign username to the username claim.

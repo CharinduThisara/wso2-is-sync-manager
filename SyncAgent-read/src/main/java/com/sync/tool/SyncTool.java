@@ -1,6 +1,8 @@
 package com.sync.tool;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.sync.tool.internal.SyncToolServiceDataHolder;
@@ -76,7 +78,7 @@ public class SyncTool {
         }
     }
 
-    public void initializeCassandra() {
+    private void initializeCassandra() {
         
         // Connect to Cosmos
         connectCosmos();
@@ -88,7 +90,7 @@ public class SyncTool {
 
         // Create table
         createTable();
-        log.info("Table Created");
+        log.info("Tables Created");
     }
 
     private void createTable() {
@@ -189,7 +191,7 @@ public class SyncTool {
 
     }
 
-    public void updateRoles(ResultSet resultSet) {
+    private void updateRoles(ResultSet resultSet) {
 
         for (Row row : resultSet) {
 
@@ -206,11 +208,15 @@ public class SyncTool {
 
                 // Check if the user exists in the system
                 if (jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
+
                     log.info("User exists in the system. Updating roles...");
                     log.info("User ID: " + user_id + ", Role List: " + role_list);
 
                     // Update the roles of the user
                     jdbcUserStoreManager.doUpdateRoleListOfUserWithID(user_id, empty_role_list, role_list);
+
+                    // Delete the role record from Cosmos
+                    deleteRoleRecord(user_id, role_list[0]);
                 }
                 
             } catch (Exception e) {
@@ -220,7 +226,7 @@ public class SyncTool {
         }
     }
 
-    public void createUsers(ResultSet resultSet) {
+    private void createUsers(ResultSet resultSet) {
     
         for (Row row : resultSet) {
             
@@ -245,6 +251,9 @@ public class SyncTool {
                     
                     // Add the user to the Database
                     jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list, claimsMap, profile, false);
+
+                    // Delete the user record from Cosmos
+                    deleteUserRecord(user_id);
                 }
 
             } catch (Exception e) {
@@ -254,28 +263,77 @@ public class SyncTool {
         }
     }
 
+    private void deleteRoleRecord(String user_id, String role_name) {
+
+        String deleteRoleQuery = "DELETE FROM " + cassandraKeyspace + "." + cassandraRoleTable + " WHERE role_name = ? AND central_us = ? AND east_us = ? AND user_id = ?;";
+
+        // Check if the data is written from Central US
+        boolean isCentral = region.equals("Central US");
+
+        try {
+            
+            // Prepare the delete query
+            PreparedStatement preparedStatement = session.prepare(deleteRoleQuery);
+
+            // Bind the parameters to the query
+            BoundStatement boundStatement = preparedStatement.bind(role_name, !isCentral, isCentral, user_id);
+
+            // Delete the user from Cosmos
+            session.execute(boundStatement);
+
+        } catch (Exception e) {
+            log.error("Error deleting user from Cosmos: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void deleteUserRecord(String user_id) {
+
+        String user_query = String.format("DELETE FROM %s.%s WHERE central_us = ? AND east_us = ? AND user_id = ?", cassandraKeyspace, cassandraUserTable);
+        boolean isCentral = region.equals("Central US");
+        
+        try {
+
+            // Prepare the delete query
+            PreparedStatement preparedStatement = session.prepare(user_query);
+
+            // Bind the parameters to the query
+            BoundStatement boundStatement = preparedStatement.bind(!isCentral, isCentral, user_id);
+
+            // Delete the user from Cosmos
+            session.execute(boundStatement);
+
+
+        } catch (Exception e) {
+            log.error("Error deleting user: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     public void read() {
         
         try {
 
             // Check if the data is written from Central US
-            boolean writtenFromCentral = region.equals("Central US");
+            boolean isCentral = region.equals("Central US");
             
             log.info("Keyspace: "+cassandraKeyspace + " Table: "+cassandraUserTable + " Region: "+region);
 
-            String user_query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraUserTable, !writtenFromCentral);
-            String role_query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraRoleTable, !writtenFromCentral);
+            String user_query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraUserTable, !isCentral);
+            String role_query = String.format("SELECT * FROM %s.%s WHERE central_us = %s ALLOW FILTERING;", cassandraKeyspace, cassandraRoleTable, !isCentral);
 
             while (true) {
 
-                // Execute the query to get the data from the users table
-                ResultSet resultSet = session.execute(user_query);
+                // Execute the query to get the data from the users table in Cosmos
+                ResultSet resultSet = session.execute(user_query); 
 
                 // Write data to WSO2 IS
                 createUsers(resultSet);
 
-                // Execute the query to get the data from the roles table
+                // Execute the query to get the data from the roles table in Cosmos
                 ResultSet roleResultSet = session.execute(role_query);
+
+                // Write data to WSO2 IS
                 updateRoles(roleResultSet);
                 
                 // Sleep for 1 second
