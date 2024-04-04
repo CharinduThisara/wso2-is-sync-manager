@@ -148,23 +148,24 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
         
         // Create table query for user table
         String createTableQuery = "CREATE TABLE IF NOT EXISTS " + cassandraKeyspace + "." + cassandraUserTable + " ("
-        + "central_us BOOLEAN, "
-        + "east_us BOOLEAN, "
-        + "user_id TEXT, "
-        + "username TEXT, "
-        + "credential TEXT, "
-        + "role_list SET<TEXT>, "
-        + "claims MAP<TEXT, TEXT>,"
-        + "profile TEXT, "
-        + "PRIMARY KEY ((central_us, east_us), user_id));";
+                                + "central_us BOOLEAN, "
+                                + "east_us BOOLEAN, "
+                                + "user_id TEXT, "
+                                + "username TEXT, "
+                                + "credential TEXT, "
+                                + "role_list SET<TEXT>, "
+                                + "claims MAP<TEXT, TEXT>,"
+                                + "profile TEXT, "
+                                + "do_delete BOOLEAN,"
+                                + "PRIMARY KEY ((central_us, east_us, do_delete), user_id));";
         
         // Create table query for role table
         String roleTableQuery   = "CREATE TABLE IF NOT EXISTS " + cassandraKeyspace + "."+cassandraRoleTable+" (" 
-        + "role_name TEXT, "
-        + "user_id TEXT, " 
-        + "central_us BOOLEAN, "
-        + "east_us BOOLEAN, " 
-        + "PRIMARY KEY ((central_us, east_us), role_name, user_id));";
+                                + "role_name TEXT, "
+                                + "user_id TEXT, " 
+                                + "central_us BOOLEAN, "
+                                + "east_us BOOLEAN, " 
+                                + "PRIMARY KEY ((central_us, east_us), role_name, user_id));";
         
         // Execute the queries to create the tables
         session.execute(roleTableQuery);
@@ -203,9 +204,39 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
     }
 
     @Override
-    public boolean doPreDeleteUserWithID
+    public boolean doPostDeleteUserWithID
             (String s, UserStoreManager userStoreManager) throws UserStoreException {
-            System.out.println("doPreDeleteUserWithID");
+            
+                final String DELETE_USER_QUERY = "INSERT INTO "+ cassandraKeyspace +"."+cassandraUserTable+" (user_id, username, credential, role_list, claims, profile, central_us, east_us, do_delete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                try {
+
+                    // Prepare the delete statement
+                    PreparedStatement preparedStatement = session.prepare(DELETE_USER_QUERY);
+
+                    // Select the Region
+                    boolean central_us = region.equals("Central US");
+                    boolean east_us = !central_us;
+
+                    // Bind the values to the statement
+                    BoundStatement boundStatement = preparedStatement.bind(
+                        s,                
+                        null,            
+                        null,        
+                        null,           
+                        null,               
+                        null,
+                        central_us,
+                        east_us,
+                        true
+                        );
+
+                    // Execute the delete statement
+                    session.execute(boundStatement);
+                }
+                catch (Exception e) {
+                    System.err.println("Error: " + e);
+                }
         
             return true;
     }
@@ -235,7 +266,7 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
 
                 // get first user id
                 String userId = newUsers[0];
-                final String INSERT_ROLE_QUERY = "INSERT INTO sync.roles (role_name, user_id, central_us, east_us) VALUES (?, ?, ?, ?)";
+                final String INSERT_ROLE_QUERY = "INSERT INTO "+ cassandraKeyspace +"."+cassandraRoleTable+" (role_name, user_id, central_us, east_us) VALUES (?, ?, ?, ?)";
 
                 try {
                 // Writing data to the user_data table
@@ -243,10 +274,10 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
                 boolean central_us = region.equals("Central US");
                 boolean east_us = !central_us;
                 BoundStatement boundStatement = preparedStatement.bind(
-                    roleName,                // role_name
-                    userId,             // user_id
-                    central_us,               // central_us
-                    east_us);             // east_us
+                    roleName,                
+                    userId,            
+                    central_us,        
+                    east_us);           
                 session.execute(boundStatement);
     
                 System.out.println("Data written to roles table successfully.");
@@ -272,7 +303,7 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
         printArray(roleList);
         System.out.printf("User Profile: %s\n", profile);
 
-        final String INSERT_USER_QUERY = "INSERT INTO "+ cassandraKeyspace +"."+cassandraUserTable+" (user_id, username, credential, role_list, claims, profile, central_us, east_us) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        final String INSERT_USER_QUERY = "INSERT INTO "+ cassandraKeyspace +"."+cassandraUserTable+" (user_id, username, credential, role_list, claims, profile, central_us, east_us, do_delete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try{
 
@@ -294,7 +325,8 @@ public class CustomUserOperationEventListener extends AbstractUserOperationEvent
                     claims,               
                     profile,
                     central_us,
-                    !central_us
+                    !central_us,
+                    false
                     ));
 
         }

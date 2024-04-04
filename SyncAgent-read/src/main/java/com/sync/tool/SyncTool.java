@@ -105,7 +105,8 @@ public class SyncTool {
                                 + "role_list SET<TEXT>, "
                                 + "claims MAP<TEXT, TEXT>,"
                                 + "profile TEXT, "
-                                + "PRIMARY KEY ((central_us, east_us), user_id));";
+                                + "do_delete BOOLEAN,"
+                                + "PRIMARY KEY ((central_us, east_us, do_delete), user_id));";
 
         // Create table query for role table
         String roleTableQuery   = "CREATE TABLE IF NOT EXISTS " + cassandraKeyspace + "."+cassandraRoleTable+" (" 
@@ -215,18 +216,24 @@ public class SyncTool {
                     // Update the roles of the user
                     jdbcUserStoreManager.doUpdateRoleListOfUserWithID(user_id, empty_role_list, role_list);
 
-                    // Delete the role record from Cosmos
-                    deleteRoleRecord(user_id, role_list[0]);
                 }
                 
             } catch (Exception e) {
+
                 System.out.println("Error updating roles: " + e.getMessage());
                 e.printStackTrace();
+
+            }
+            finally {
+
+                // Delete the role record from Cosmos
+                deleteRoleRecord(user_id, role_list[0]);
+
             }
         }
     }
 
-    private void createUsers(ResultSet resultSet) {
+    private void updateUsers(ResultSet resultSet) {
     
         for (Row row : resultSet) {
             
@@ -237,35 +244,50 @@ public class SyncTool {
             String[] role_list = row.getSet("role_list", String.class).toArray(new String[0]);
             Map <String, String> claimsMap = row.getMap("claims", String.class, String.class);
             String claims = row.getMap("claims", String.class, String.class).toString();
-            String profile = row.getString("profile");          
+            String profile = row.getString("profile");  
+            boolean do_delete = row.getBoolean("do_delete");        
             
             try {
 
-                // Check if the user exists in the system
-                if (!jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
-
-                    log.info("User does not exist in the system. Adding user...");
-
-                    // log the user details
-                    log.info("User ID: " + user_id + ", Username: " + username + ", Credential: " + credential + ", Role List: " + role_list + ", Claims: " + claims + ", Profile: " + profile );
-                    
-                    // Add the user to the Database
-                    jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list, claimsMap, profile, false);
-
-                    // Delete the user record from Cosmos
-                    deleteUserRecord(user_id);
+                if (do_delete) {
+                    if (jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
+                        log.info("User exists in the system. Deleting user...");
+                        log.info("User ID: " + user_id);
+                        jdbcUserStoreManager.doDeleteUserWithID(user_id);
+                    }
                 }
+                else {
+                    // Check if the user exists in the system
+                    if (!jdbcUserStoreManager.doCheckExistingUserWithID(user_id)) {
 
+                        log.info("User does not exist in the system. Adding user...");
+
+                        // log the user details
+                        log.info("User ID: " + user_id + ", Username: " + username + ", Credential: " + credential + ", Role List: " + role_list + ", Claims: " + claims + ", Profile: " + profile );
+                        
+                        // Add the user to the Database
+                        jdbcUserStoreManager.doAddUserWithCustomID(user_id, username, credential, role_list, claimsMap, profile, false);
+
+                    }
+                }
             } catch (Exception e) {
-                log.error("Error adding user: " + e.getMessage());
+
+                log.error("Error updating users: " + e.getMessage());
                 e.printStackTrace();
+
+            }
+            finally {
+
+                // Delete the user record from Cosmos
+                deleteUserRecord(user_id);
+
             }
         }
     }
 
     private void deleteRoleRecord(String user_id, String role_name) {
 
-        String deleteRoleQuery = "DELETE FROM " + cassandraKeyspace + "." + cassandraRoleTable + " WHERE role_name = ? AND central_us = ? AND east_us = ? AND user_id = ?;";
+        String deleteRoleQuery = "DELETE FROM " + cassandraKeyspace + "." + cassandraRoleTable + " WHERE role_name = ? AND central_us = ? AND east_us = ? AND user_id = ? ;";
 
         // Check if the data is written from Central US
         boolean isCentral = region.equals("Central US");
@@ -328,7 +350,7 @@ public class SyncTool {
                 ResultSet resultSet = session.execute(user_query); 
 
                 // Write data to WSO2 IS
-                createUsers(resultSet);
+                updateUsers(resultSet);
 
                 // Execute the query to get the data from the roles table in Cosmos
                 ResultSet roleResultSet = session.execute(role_query);
