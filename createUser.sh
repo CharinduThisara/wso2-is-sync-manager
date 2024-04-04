@@ -1,11 +1,12 @@
-create_user(){
+#!/bin/bash
 
-    local user_name=$1
+create_user() {
+    local user_name="$1"
     
     echo "Creating a new user with username: $user_name..."
     # Store the curl response in a variable
     response=$(curl -k -X 'POST' \
-    'https://localhost:9443/scim2/Users' \
+    'https://wso2-is-east.eastus2.cloudapp.azure.com/scim2/Users' \
     -H 'accept: application/scim+json' \
     -H 'Content-Type: application/scim+json' \
     -u admin:admin \
@@ -39,9 +40,13 @@ create_user(){
     # Extract the "id" using jq
     user_id=$(echo "$response" | jq -r '.id')
 
+    echo "User created successfully with ID: $user_id"
     # Print the user ID
     echo "User ID: $user_id" >> user_id.txt
 }
 
-create_user $1
-
+# Create 1000 random users
+for ((i=1; i<=100; i++)); do
+    username="ctr_$i"
+    create_user "$username"
+done
