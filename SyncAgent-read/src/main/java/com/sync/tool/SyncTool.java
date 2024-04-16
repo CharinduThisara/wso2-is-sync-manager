@@ -279,7 +279,7 @@ public class SyncTool {
             finally {
 
                 // Delete the user record from Cosmos
-                deleteUserRecord(user_id);
+                deleteUserRecord(user_id, do_delete);
 
             }
         }
@@ -309,9 +309,9 @@ public class SyncTool {
         }
     }
 
-    private void deleteUserRecord(String user_id) {
+    private void deleteUserRecord(String user_id, boolean do_delete) {
 
-        String user_query = String.format("DELETE FROM %s.%s WHERE central_us = ? AND east_us = ? AND user_id = ?", cassandraKeyspace, cassandraUserTable);
+        String user_query = String.format("DELETE FROM %s.%s WHERE central_us = ? AND east_us = ? AND user_id = ? AND do_delete = ?;", cassandraKeyspace, cassandraUserTable);
         boolean isCentral = region.equals("Central US");
         
         try {
@@ -320,7 +320,7 @@ public class SyncTool {
             PreparedStatement preparedStatement = session.prepare(user_query);
 
             // Bind the parameters to the query
-            BoundStatement boundStatement = preparedStatement.bind(!isCentral, isCentral, user_id);
+            BoundStatement boundStatement = preparedStatement.bind(!isCentral, isCentral, user_id, do_delete);
 
             // Delete the user from Cosmos
             session.execute(boundStatement);
