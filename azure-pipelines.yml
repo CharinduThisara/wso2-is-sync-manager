@@ -1,5 +1,12 @@
+trigger:
+  branches:
+    exclude:
+      - '*'
+
 pr:
-- main
+  branches:
+    include:
+      - '*'
 
 pool:
   vmImage: ubuntu-latest
