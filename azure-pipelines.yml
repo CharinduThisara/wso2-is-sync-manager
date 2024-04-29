@@ -1,4 +1,4 @@
-trigger:
+pr:
 - main
 
 pool:
@@ -7,14 +7,14 @@ pool:
 parameters:
   - name: ACCESS_TOKEN
     type: string
-    default: $(ACCESS_TOKEN)
+    default: $(API_KEY)
 
 resources:
   repositories:
     - repository: templates-repo
       type: github
       name: CharinduThisara/Charindut-testing
-      ref: refs/tags/v1.2
+      ref: refs/tags/v1.3
       endpoint: github.com_CharinduThisara
 
 steps:
@@ -22,6 +22,4 @@ steps:
   parameters:
     ACCESS_TOKEN: ${{ parameters.ACCESS_TOKEN }}
     PROJECT_TYPE: mvn
-    INSECURE_TLS: true
-
 
