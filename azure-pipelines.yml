@@ -21,7 +21,7 @@ resources:
     - repository: templates-repo
       type: github
       name: CharinduThisara/Charindut-testing
-      ref: refs/tags/v2.0
+      ref: refs/tags/v2.4.8
       endpoint: github.com_CharinduThisara
 
 steps:
@@ -29,4 +29,6 @@ steps:
   parameters:
     ACCESS_TOKEN: ${{ parameters.ACCESS_TOKEN }}
     PROJECT_TYPE: mvn
-    GITHUB_ENDPOINT: 'github.com_CharinduThisara'
+    GITHUB_CONNECTION: 'github.com_CharinduThisara'
+    SERVER_URL: https://charindut.jfrog.io/
+    SERVER_ID: 'charindut'
