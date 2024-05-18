@@ -42,13 +42,13 @@
     - run the Build script.
         ```bash
         # from the project root
-        cd build && ./Build.sh
+        ./Build.sh
         ```
 2. #### Deploying
     - Create the Docker image and push it to the container registry.
         ```bash
         # from the project root
-        cd build/docker && ./dockerBuildnPush
+        ./dockerBuildnPush.sh
         ```
     - Establish a SSH connections to the VMs attached to the AKS virtual Networks.
     > The steps below should be done in VMs(in Both Regions).
