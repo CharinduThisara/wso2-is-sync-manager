@@ -51,6 +51,7 @@
         cd build/docker && ./dockerBuildnPush
         ```
     - Establish a SSH connections to the VMs attached to the AKS virtual Networks.
+    > The steps below should be done in VMs(in Both Regions).
     - Clone this repo in to the VM.
     - Configure the IS.
         - isDeploymentTOML.yaml -> to add the deployment.toml with correct **Database connection configs**, **hostname** and So on...
@@ -65,3 +66,10 @@
         # from the project root
         cd deploy && ./Deploy.sh
         ```
+3. #### Exposing the Load Balancer publically.
+    - To Do this find the Public IP related to the AKS Load Balancer and configure a Domain name of it.(<mark>**Domain name**</mark> should be equal to the <mark>**hostname**</mark> mentioned in the deployment.toml)
+
+## Testing 
+
+### Now Access the Identity Servers from the Configured domains. Then try to create/delete user in one region. 
+### You'll see that each user creation/deletion operation is getting reflected in the opposite region.
