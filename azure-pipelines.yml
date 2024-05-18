@@ -1,29 +1,119 @@
-pr:
-  branches:
-    include:
-      - '*'
-
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
-parameters:
-  - name: ACCESS_TOKEN
-    type: string
-    default: $(API_KEY)
+variables:
+  MAVEN_VERSION: '3.6.3'
+  JAVA_HOME_PATH: '/path/to/java8'
+  AKS_NAME: 'your_aks_name'
+  IS_HOME_PATH: '/path/to/wso2is-7.0.0'
 
-resources:
-  repositories:
-    - repository: templates-repo
-      type: github
-      name: CharinduThisara/Charindut-testing
-      ref: refs/tags/v2.4.8
-      endpoint: github.com_CharinduThisara
+  # Define the following variables in the Azure DevOps pipeline
+  # AZURE_SUBSCRIPTION_ID: 'your_subscription_id'
+  # AZURE_RESOURCE_GROUP: 'your_resource_group'
+  # ACR_NAME: 'your_acr_name'
+  # ACR_LOGIN_SERVER: 'your_acr_login_server'
+  # ACR_USERNAME: 'your_acr_username'
+  # ACR_PASSWORD: 'your_acr_password'
+  # VM_USER: 'your_vm_username'
+  # VM_HOST: 'your_vm_ip_or_hostname'
+  # SSH_PRIVATE_KEY: 'your_ssh_private_key_secret'
 
-steps:
-- template: sca-test-jfrog.yml@templates-repo
-  parameters:
-    ACCESS_TOKEN: ${{ parameters.ACCESS_TOKEN }}
-    PROJECT_TYPE: mvn
-    GITHUB_CONNECTION: 'github.com_CharinduThisara'
-    SERVER_URL: https://charindut.jfrog.io/
-    SERVER_ID: 'charindut'
+stages:
+- stage: BuildAndPush
+  jobs:
+  - job: BuildAndPushJob
+    steps:
+    - script: |
+        # Specify the Maven version you want to install
+        MAVEN_VERSION=${{ parameters.PROJECT_VERSION }}
+
+        # Remove existing Maven installation (if any)
+        sudo rm -rf /opt/apache-maven-*
+        sudo rm -rf /usr/local/bin/mvn
+
+        # Download specified Maven version
+        wget "https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz"
+
+        # Extract Maven archive
+        sudo tar xf "apache-maven-$MAVEN_VERSION-bin.tar.gz" -C /opt/
+
+        # Create a symbolic link to the new Maven installation
+        sudo ln -s "/opt/apache-maven-$MAVEN_VERSION" /opt/maven
+        sudo ln -s "/opt/maven/bin/mvn" /usr/local/bin/mvn
+
+        # Clean up downloaded archive
+        rm "apache-maven-$MAVEN_VERSION-bin.tar.gz"
+
+        # Verify installation
+        mvn -version
+      displayName: Changing mvn version
+
+    - script: |
+        echo "## Setting JAVA_HOME and IS_HOME_PATH"
+        echo "export JAVA_HOME=${JAVA_HOME_PATH}" >> ./Build.sh
+        echo "export IS_HOME=${IS_HOME_PATH}" >> ./Build.sh
+      displayName: 'Set Environment Variables for Build.sh'
+
+    - script: ./Build.sh
+      displayName: 'Build Project'
+
+    - script: ./dockerBuildnPush.sh
+      displayName: 'Build and Push Docker Image'
+      env:
+        ACR_NAME: $(ACR_NAME)
+        ACR_LOGIN_SERVER: $(ACR_LOGIN_SERVER)
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
+
+- stage: Deploy
+  jobs:
+  - job: DeployJob
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.x'
+      displayName: 'Use Python 3.x'
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: $(AZURE_SUBSCRIPTION_ID)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az aks get-credentials --resource-group $(AZURE_RESOURCE_GROUP) --name $(AKS_NAME) --overwrite-existing
+      displayName: 'Get AKS Credentials'
+
+    - task: InstallSSHKey@0
+      inputs:
+        sshKeySecureFile: $(SSH_KEY_SECURE_FILE)
+        hostName: $(VM_HOST)
+        user: $(VM_USER)
+        privateKey: $(SSH_PRIVATE_KEY)
+      displayName: 'Install SSH Key'
+
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'SSH_Service_Connection' # Define a service connection in Azure DevOps
+        runOptions: inline
+        inline: |
+          # Clone the repo on the VM
+          git clone https://github.com/your/repo.git
+          cd repo
+
+          # Configure IS
+          cp path/to/isDeploymentTOML.yaml /path/to/deployment.toml
+          cp path/to/isENV.yaml /path/to/.env
+
+          # Run Deploy.sh
+          export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
+          export AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP)
+          export AKS_NAME=$(AKS_NAME)
+
+      displayName: 'Configure IS on VM'
+
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'SSH_Service_Connection' # Define a service connection in Azure DevOps
+        runOptions: inline
+        scriptPath: 'deploy/Deploy.sh'
+      displayName: 'Deploy IS on AKS'
