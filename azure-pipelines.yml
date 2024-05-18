@@ -117,3 +117,7 @@ stages:
         runOptions: inline
         scriptPath: 'deploy/Deploy.sh'
       displayName: 'Deploy IS on AKS'
+      env:
+        AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+        AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
+        AKS_NAME: $(AKS_NAME)
