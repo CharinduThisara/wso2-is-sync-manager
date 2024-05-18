@@ -6,7 +6,7 @@ WORKDIR /home
 COPY ./wso2is-7.0.0 /home/wso2carbon/wso2is-7.0.0
 
 # Set necessary permissions for the script (if required)
-# RUN chmod +x /app/wso2is-6.1.0-Instance-1/bin/wso2server.sh
+RUN chmod +x /home/wso2carbon/wso2is-7.0.0/bin/wso2server.sh
 
 # Expose ports
 EXPOSE 4000 9763 9443
