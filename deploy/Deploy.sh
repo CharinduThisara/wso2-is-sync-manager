@@ -49,3 +49,5 @@ kubectl apply -f ./Service_Account/service-account.yaml
 kubectl apply -f ./Service_Account/role-binding.yaml
 
 helm install wso2is .
+
+cd ..

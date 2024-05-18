@@ -15,7 +15,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: identity-service-hotdr
+  name: identity-service-active-active
   namespace : {{ .Values.Namespace }}
   labels:
     deployment: wso2is
