@@ -40,7 +40,7 @@ sudo apt-get update
 sudo apt-get install helm
 
 # Login to Azure
-az login
+az login --use-device-code
 az account set --subscription $AZURE_SUBSCRIPTION_ID
 az aks get-credentials --resource-group $AZURE_RESOURCE_GROUP --name $AKS_NAME --overwrite-existing
 
@@ -48,4 +48,4 @@ kubectl apply -f ../Service Account/is-role.yaml
 kubectl apply -f ../Service Account/service-account.yaml
 kubectl apply -f ../Service Account/role-binding.yaml
 
-helm install wso2is ../wso2-kubernetes-ha-mode
+helm install wso2is .

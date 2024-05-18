@@ -33,7 +33,7 @@
        docker login <registry_name>.azurecr.io
        ```
 
-### How to Use the scripts
+### How to Use the scripts to BUID & DEPLOY:
 
 1. #### Building
     - Edit the following parameters in **Build.sh**.
@@ -41,20 +41,27 @@
         - IS_HOME_PATH (path of the unzipped IS pack - eg: /home/user/Code_Bases/wso2-is-sync-manager/wso2is-7.0.0)
     - run the Build script.
         ```bash
+        # from the project root
         cd build && ./Build.sh
         ```
 2. #### Deploying
     - Create the Docker image and push it to the container registry.
         ```bash
+        # from the project root
         cd build/docker && ./dockerBuildnPush
         ```
     - Establish a SSH connections to the VMs attached to the AKS virtual Networks.
     - Clone this repo in to the VM.
+    - Configure the IS.
+        - isDeploymentTOML.yaml -> to add the deployment.toml with correct **Database connection configs**, **hostname** and So on...
+        - isENV.yaml -> to pass the correct enviroment settings to connect to the correct COSMOS DB region.
     - Run the Script
         ```bash
         # Set environment variables
         export AZURE_SUBSCRIPTION_ID="your_subscription_id"
         export AZURE_RESOURCE_GROUP="your_resource_group"
         export AKS_NAME="your_aks_name"
-        cd deploy && ./deploy.sh
+
+        # from the project root
+        cd deploy && ./Deploy.sh
         ```
