@@ -38,37 +38,23 @@
 1. #### Building
     - Edit the following parameters in **Build.sh**.
         - JAVA_HOME_PATH (path for java 8)
-        - IS_HOME_PATH (path of the unzipped IS pack - eg: /home/user/IS/Code_Bases/wso2-is-sync-managerwso2is-7.0.0.zip)
+        - IS_HOME_PATH (path of the unzipped IS pack - eg: /home/user/Code_Bases/wso2-is-sync-manager/wso2is-7.0.0)
     - run the Build script.
         ```bash
-        ./Build.sh
+        cd build && ./Build.sh
         ```
 2. #### Deploying
     - Create the Docker image and push it to the container registry.
         ```bash
-        ./dockerBuildnPush
+        cd build/docker && ./dockerBuildnPush
         ```
-    - 
-    
-1. Building SyncAgent-read and SyncAgent-write Maven projects.
-2. Copying the built artifacts to the appropriate directories in the WSO2 Identity Server.
-3. Updating configuration files with custom settings.
-4. Starting the WSO2 Identity Server.
-
-### Usage
-
-1. Define the `home_path` variable at the beginning of the script to the path of your WSO2 Identity Server installation directory.
-
-```bash
-home_path='path/to/wso2is-7.0.0'
-```
-
-2. Add credentials of Cosmos DB to .example.env and update the file name to .env
-
-3. Then run...
-
-```bash
-./Build.sh
-```
-
-docker login acrasgardeomainrnd001.azurecr.io
+    - Establish a SSH connections to the VMs attached to the AKS virtual Networks.
+    - Clone this repo in to the VM.
+    - Run the Script
+        ```bash
+        # Set environment variables
+        export AZURE_SUBSCRIPTION_ID="your_subscription_id"
+        export AZURE_RESOURCE_GROUP="your_resource_group"
+        export AKS_NAME="your_aks_name"
+        cd deploy && ./deploy.sh
+        ```
