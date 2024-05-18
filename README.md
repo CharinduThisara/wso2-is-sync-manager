@@ -7,7 +7,7 @@
 ### Prerequisites:
 
 1. #### You need an Azure Subscription in order to create the following resources.
-   - Two Private Azure Kubernetes Clusters in two paired regions.[(Learn about Azure Paired regions)](https://learn.microsoft.com/en-us/azure/reliability/cross-region-replication-azure)
+   - Two Private Azure Kubernetes Clusters in two region where Cosmos DB write operations are supported.
    - Two Vitual Machines attached to the same network of Each Kubernetes Cluster to access the clusters from local machine using SSH.
    - Azure Cosmos DB Account with two write regions enabled.[(Learn how to create one)](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/quickstart-portal)
    - Two MSSQL Databases in Azure(this is optional because you can use the default H2 Database as well)
