@@ -162,10 +162,19 @@ stages:
   jobs:
   - job: DeployJob
     steps:
-    - task: UsePythonVersion@0
+    - task: HelmDeploy@0
       inputs:
-        versionSpec: '3.x'
-      displayName: 'Use Python 3.x'
+        azureSubscriptionForACR: $AZURE_SUBSCRIPTION_ID
+        azureResourceGroupForACR: $AZURE_RESOURCE_GROUP_1
+        azureContainerRegistry: $ACR_NAME
+        connectionType: 'Azure Resource Manager'
+        azureSubscription: 'TF_charindu'
+        azureResourceGroup: 'rnd-charindut-isuru'
+        kubernetesCluster: 'wso2-is-eastus'
+        namespace: 'testing'
+        command: 'create'
+        failOnStderr: true
+
 
     # - task: AzureCLI@2
     #   inputs:
