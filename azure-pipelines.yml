@@ -162,7 +162,7 @@ stages:
   jobs:
   - job: DeployJob
     steps:
-    - task: HelmDeploy@0
+    - task: HelmDeploy@0  
       inputs:
         azureSubscriptionForACR: $AZURE_SUBSCRIPTION_ID
         azureResourceGroupForACR: $AZURE_RESOURCE_GROUP_1
@@ -171,10 +171,13 @@ stages:
         azureSubscription: 'TF_charindu'
         azureResourceGroup: 'rnd-charindut-isuru'
         kubernetesCluster: 'wso2-is-eastus'
-        namespace: 'testing'
-        command: 'create'
+        namespace: 'wso2is'
+        command: 'upgrade'
         failOnStderr: true
-
+        chartType: 'FilePath'
+        chartPath: $(DefaulWorkingDirectory)/deploy
+        releaseName: 'wso2is-test' 
+        install: true
 
     # - task: AzureCLI@2
     #   inputs:
