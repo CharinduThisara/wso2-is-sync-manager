@@ -4,7 +4,8 @@ pool:
 variables:
   MAVEN_VERSION: '3.6.3'
   JAVA_HOME_PATH: '/usr/lib/jvm/java-1.8.0-openjdk-amd64'
-  AKS_NAME: 'your_aks_name'
+  AKS_NAME1: 'wso2-is-eastus'
+  AKS_NAME2: 'wso2is-cluster-central-us'
   IS_HOME_PATH: '$(Build.SourcesDirectory)/wso2is-7.0.0'
 
   # Define the following variables in the Azure DevOps pipeline
@@ -151,9 +152,7 @@ stages:
     steps:
     - task: ManualValidation@0
       inputs:
-        notifyUsers: |
-          user1@example.com
-          user2@example.com
+        notifyUsers: ''
         instructions: 'Please review and approve the deployment.'
         onTimeout: 'reject'
       displayName: 'Manual Validation Step'
@@ -175,7 +174,7 @@ stages:
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
-          az aks get-credentials --resource-group $(AZURE_RESOURCE_GROUP) --name $(AKS_NAME) --overwrite-existing
+          az aks get-credentials --resource-group $(AZURE_RESOURCE_GROUP) --name $(AKS_NAME1) --overwrite-existing
       displayName: 'Get AKS Credentials'
 
     - task: InstallSSHKey@0
@@ -202,7 +201,7 @@ stages:
           # Run Deploy.sh
           export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
           export AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP)
-          export AKS_NAME=$(AKS_NAME)
+          export AKS_NAME=$(AKS_NAME1)
 
       displayName: 'Configure IS on VM'
 
@@ -215,7 +214,7 @@ stages:
       env:
         AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
         AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
-        AKS_NAME: $(AKS_NAME)
+        AKS_NAME: $(AKS_NAME1)
 
     - script: |
         #!/bin/bash
@@ -258,7 +257,7 @@ stages:
         # Login to Azure
         az login --use-device-code
         az account set --subscription $AZURE_SUBSCRIPTION_ID
-        az aks get-credentials --resource-group $AZURE_RESOURCE_GROUP --name $AKS_NAME --overwrite-existing
+        az aks get-credentials --resource-group $AZURE_RESOURCE_GROUP --name $AKS_NAME1 --overwrite-existing
 
         kubectl apply -f ./Service_Account/is-role.yaml
         kubectl apply -
