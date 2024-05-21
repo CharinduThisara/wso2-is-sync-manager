@@ -5,7 +5,7 @@ variables:
   MAVEN_VERSION: '3.6.3'
   JAVA_HOME_PATH: '/usr/lib/jvm/java-1.8.0-openjdk-amd64'
   AKS_NAME: 'your_aks_name'
-  IS_HOME_PATH: '/home/charindut/IS/Code_Bases/wso2-is-sync-manager/wso2is-7.0.0'
+  IS_HOME_PATH: '$(Build.SourcesDirectory)/wso2is-7.0.0'
 
   # Define the following variables in the Azure DevOps pipeline
   # AZURE_SUBSCRIPTION_ID: 'your_subscription_id'
@@ -26,22 +26,18 @@ stages:
     - script: |
         # Install Java 8
         sudo apt-get update
-        sudo apt-get install -y openjdk-8-jdk
+        sudo apt-get install openjdk-8-jdk
 
         # Set Java 8 as default
-        sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-8-openjdk-amd64/bin/java 1
-        sudo update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac 1
-        sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/bin/java
-        sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
+        sudo update-alternatives --set java /usr/lib/jvm/jdk1.8.0_version/bin/java
 
         # Verify Java installation
         java -version
-        javac -version
       displayName: 'Install and Set Java 8 as Default'
       
     - script: |
         # Specify the Maven version you want to install
-        MAVEN_VERSION=${{ parameters.PROJECT_VERSION }}
+        MAVEN_VERSION=${{ variables.MAVEN_VERSION }}
 
         # Remove existing Maven installation (if any)
         sudo rm -rf /opt/apache-maven-*
@@ -62,18 +58,29 @@ stages:
 
         # Verify installation
         mvn -version
-      displayName: Changing mvn version
+      displayName: 'Install and Set Maven Version'
 
     - script: |
-        echo "## Setting JAVA_HOME and IS_HOME_PATH"
-        echo "export JAVA_HOME=${JAVA_HOME_PATH}" >> ./Build.sh
-        echo "export IS_HOME=${IS_HOME_PATH}" >> ./Build.sh
-      displayName: 'Set Environment Variables for Build.sh'
+        # Add Docker's official GPG key:
+        sudo apt-get update
+        sudo apt-get install ca-certificates curl
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+        
+        # Add the repository to Apt sources:
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      displayName: 'Install Docker'
 
     - script: |
         # Download WSO2 IS 7.0.0 pack
         wget "https://github.com/wso2/product-is/releases/download/v7.0.0/wso2is-7.0.0.zip"
-        unzip wso2is-7.0.0.zip -d /home/charindut/IS/Code_Bases/wso2-is-sync-manager/
+        unzip wso2is-7.0.0.zip -d $(Build.SourcesDirectory)
         rm wso2is-7.0.0.zip
       displayName: 'Download and Unzip WSO2 IS 7.0.0 Pack'
 
@@ -81,54 +88,79 @@ stages:
         echo "Building the Agent jar files"
 
         cd SyncAgent-read
-        JAVA_HOME=$JAVA_HOME_PATH mvn clean install
+        JAVA_HOME=${{ variables.JAVA_HOME_PATH }} mvn clean install
         cd ..
 
         cd SyncAgent-write
-        JAVA_HOME=$JAVA_HOME_PATH mvn clean install
+        JAVA_HOME=${{ variables.JAVA_HOME_PATH }} mvn clean install
         cd ..
 
         echo "Copying the Agent jar files to the WSO2 IS 7.0.0"
-        rm $IS_HOME_PATH/repository/components/dropins/com.sync.tool-1.0-SNAPSHOT.jar
-        cp SyncAgent-read/target/com.sync.tool-1.0-SNAPSHOT.jar $IS_HOME_PATH/repository/components/dropins/
+        rm ${{ variables.IS_HOME_PATH }}/repository/components/dropins/com.sync.tool-1.0-SNAPSHOT.jar
+        cp SyncAgent-read/target/com.sync.tool-1.0-SNAPSHOT.jar ${{ variables.IS_HOME_PATH }}/repository/components/dropins/
 
-        rm $IS_HOME_PATH/repository/components/dropins/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar
-        cp SyncAgent-write/target/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar $IS_HOME_PATH/repository/components/dropins/
+        rm ${{ variables.IS_HOME_PATH }}/repository/components/dropins/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar
+        cp SyncAgent-write/target/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar ${{ variables.IS_HOME_PATH }}/repository/components/dropins/
 
         echo "Copying the reference.conf configuration files to the WSO2 IS 7.0.0"
-        rm $IS_HOME_PATH/repository/conf/reference.conf
-        cp config/reference.conf $IS_HOME_PATH/repository/conf/
+        rm ${{ variables.IS_HOME_PATH }}/repository/conf/reference.conf
+        cp config/reference.conf ${{ variables.IS_HOME_PATH }}/repository/conf/
 
         echo "Copying the deployment.toml configuration files to the WSO2 IS 7.0.0"
-        rm $IS_HOME_PATH/repository/conf/deployment.toml
-        cp config/deployment.toml $IS_HOME_PATH/repository/conf/
+        rm ${{ variables.IS_HOME_PATH }}/repository/conf/deployment.toml
+        cp config/deployment.toml ${{ variables.IS_HOME_PATH }}/repository/conf/
 
         echo "Copying the libraries to the WSO2 IS 7.0.0"
-        cp lib/* $IS_HOME_PATH/repository/components/lib/
-        cp dropins/* $IS_HOME_PATH/repository/components/dropins/
+        cp lib/* ${{ variables.IS_HOME_PATH }}/repository/components/lib/
+        cp dropins/* ${{ variables.IS_HOME_PATH }}/repository/components/dropins/
 
-        echo
+        ls ${{ variables.IS_HOME_PATH }}/repository/components/lib -la
+        echo "---------------------------------------------------------------------"
+        echo "---------------------------------------------------------------------"
+        ls ${{ variables.IS_HOME_PATH }}/repository/components/dropins -la
+
+        echo  
         echo "Build Completed Successfully"
       displayName: 'Build Project'
 
-    - script: |
-        ACR_NAME=acrasgardeomainrnd001
-        IMAGE_NAME=is7.0
-        TAG=active
-        
-        docker build -t $IMAGE_NAME:$TAG .
+    - task: AzureCLI@2
+      inputs:
+        addSpnToEnvironment: true
+        azureSubscription: ${{ parameters.AZURE_SERVICE_CONNECTION_NAME }}
+        scriptLocation: 'inlineScript'
+        scriptType: 'bash'
+        inlineScript: |
+          # Login to ACR
+          docker login $ACR_NAME.azurecr.io
 
-        docker tag $IMAGE_NAME:$TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
-        
-        docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
-      env:
-        ACR_NAME: $(ACR_NAME)
-        ACR_LOGIN_SERVER: $(ACR_LOGIN_SERVER)
-        ACR_USERNAME: $(ACR_USERNAME)
-        ACR_PASSWORD: $(ACR_PASSWORD)
-      displayName: 'Build and Push Docker Image'
-      
+          # Build and Push Docker Image
+          IMAGE_NAME=is7.0
+          TAG=active
+          
+          docker build -t $IMAGE_NAME:$TAG .
+          docker tag $IMAGE_NAME:$TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
+          docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
+      displayName: 'Login to ACR and Build and Push Docker Image'
+
+# add manual validation for the deployment
+- stage: ManualValidation
+  pool: server
+  jobs:
+  - job: ManualValidationJob
+    displayName: 'Manual Validation'
+    steps:
+    - task: ManualValidation@0
+      inputs:
+        notifyUsers: |
+          user1@example.com
+          user2@example.com
+        instructions: 'Please review and approve the deployment.'
+        onTimeout: 'reject'
+      displayName: 'Manual Validation Step'
+
 - stage: Deploy
+  pool: 
+    vmImage: 'ubuntu-latest'
   jobs:
   - job: DeployJob
     steps:
