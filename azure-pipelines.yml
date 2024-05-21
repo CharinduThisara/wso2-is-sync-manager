@@ -134,7 +134,7 @@ stages:
         scriptType: 'bash'
         inlineScript: |
           # Login to ACR
-          docker login $ACR_NAME.azurecr.io
+          az acr login --name $ACR_NAME
           
           docker build -t $IMAGE_NAME:$TAG .
           docker tag $IMAGE_NAME:$TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
