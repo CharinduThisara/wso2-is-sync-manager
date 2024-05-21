@@ -19,6 +19,7 @@ variables:
   # VM_USER: 'your_vm_username'
   # VM_HOST: 'your_vm_ip_or_hostname'
   # SSH_PRIVATE_KEY: 'your_ssh_private_key_secret'
+  # AZURE_RESOURCE_GROUP_ACR: 'blabla'
 
 stages: 
 - stage: BuildAndPush
@@ -164,8 +165,8 @@ stages:
     steps:
     - task: HelmDeploy@0  
       inputs:
-        azureSubscriptionForACR: $AZURE_SUBSCRIPTION_ID
-        azureResourceGroupForACR: $AZURE_RESOURCE_GROUP_1
+        azureSubscriptionForACR: $(AZURE_SERVICE_CONNECTION_NAME)
+        azureResourceGroupForACR: $(AZURE_RESOURCE_GROUP_ACR)
         azureContainerRegistry: $ACR_NAME
         connectionType: 'Azure Resource Manager'
         azureSubscription: 'TF_charindu'
@@ -178,7 +179,6 @@ stages:
         chartPath: $(DefaulWorkingDirectory)/deploy
         releaseName: 'wso2is-test' 
         install: true
-
     # - task: AzureCLI@2
     #   inputs:
     #     addSpnToEnvironment: true
