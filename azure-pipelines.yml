@@ -171,7 +171,11 @@ stages:
         inline: |
           export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
           export AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP)
-          export AKS_NAME=$(AKS_NAME1)
+          export AKS_NAME=$(AKS_NAME)
 
           cd /home/azureuser/wso2-is-sync-manager/deploy
           ./Deploy.sh
+      env:
+        AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+        AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
+        AKS_NAME: $(AKS_NAME1)
