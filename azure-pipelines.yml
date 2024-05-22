@@ -11,15 +11,10 @@ variables:
 
   # Define the following variables in the Azure DevOps pipeline
   # AZURE_SUBSCRIPTION_ID: 'your_subscription_id'
-  # AZURE_RESOURCE_GROUP: 'your_resource_group'
+  # AZURE_SERVICE_CONNECTION_NAME: 'TF_charindu'
   # ACR_NAME: 'acrasgardeomainrnd001'
-  # ACR_LOGIN_SERVER: 'your_acr_login_server'
-  # ACR_USERNAME: 'your_acr_username'
-  # ACR_PASSWORD: 'your_acr_password'
-  # VM_USER: 'your_vm_username'
-  # VM_HOST: 'your_vm_ip_or_hostname'
-  # SSH_PRIVATE_KEY: 'your_ssh_private_key_secret'
-  # AZURE_RESOURCE_GROUP_ACR: 'blabla'
+  # AZURE_RESOURCE_GROUP_ACR: 'rg-asgardeo...'
+  # SSH_EAST: name of the VM
 
 stages: 
 - stage: BuildAndPush
@@ -169,5 +164,6 @@ stages:
         runOptions: 'inline'
         readyTimeout: '20000'
         inline: |
+          # please clone the git repo to the following path in the VM and add Cosmos DB credentials to isENV.yaml
           cd /home/azureuser/wso2-is-sync-manager
           ./Deploy.sh
