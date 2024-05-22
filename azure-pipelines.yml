@@ -1,31 +1,48 @@
-pool:
-  vmImage: 'ubuntu-latest'
+trigger: none
 
 variables:
   MAVEN_VERSION: '3.6.3'
-  JAVA_HOME_PATH: '/path/to/java8'
-  AKS_NAME: 'your_aks_name'
-  IS_HOME_PATH: '/path/to/wso2is-7.0.0'
+  JAVA_HOME_PATH: '/usr/lib/jvm/java-1.8.0-openjdk-amd64'
+  AKS_NAME1: 'wso2-is-eastus'
+  AKS_NAME2: 'wso2is-cluster-central-us'
+  IS_HOME_PATH: '$(Build.SourcesDirectory)/wso2is-7.0.0'
+  IMAGE_NAME: is7.0
+  TAG: active
 
   # Define the following variables in the Azure DevOps pipeline
   # AZURE_SUBSCRIPTION_ID: 'your_subscription_id'
   # AZURE_RESOURCE_GROUP: 'your_resource_group'
-  # ACR_NAME: 'your_acr_name'
+  # ACR_NAME: 'acrasgardeomainrnd001'
   # ACR_LOGIN_SERVER: 'your_acr_login_server'
   # ACR_USERNAME: 'your_acr_username'
   # ACR_PASSWORD: 'your_acr_password'
   # VM_USER: 'your_vm_username'
   # VM_HOST: 'your_vm_ip_or_hostname'
   # SSH_PRIVATE_KEY: 'your_ssh_private_key_secret'
+  # AZURE_RESOURCE_GROUP_ACR: 'blabla'
 
-stages:
+stages: 
 - stage: BuildAndPush
+  pool:
+    vmImage: 'ubuntu-latest'
   jobs:
   - job: BuildAndPushJob
     steps:
     - script: |
+        # Install Java 8
+        sudo apt-get update
+        sudo apt-get install openjdk-8-jdk
+
+        # Set Java 8 as default
+        sudo update-alternatives --set java /usr/lib/jvm/jdk1.8.0_version/bin/java
+
+        # Verify Java installation
+        java -version
+      displayName: 'Install and Set Java 8 as Default'
+      
+    - script: |
         # Specify the Maven version you want to install
-        MAVEN_VERSION=${{ parameters.PROJECT_VERSION }}
+        MAVEN_VERSION=${{ variables.MAVEN_VERSION }}
 
         # Remove existing Maven installation (if any)
         sudo rm -rf /opt/apache-maven-*
@@ -46,78 +63,120 @@ stages:
 
         # Verify installation
         mvn -version
-      displayName: Changing mvn version
+      displayName: 'Install and Set Maven Version'
 
     - script: |
-        echo "## Setting JAVA_HOME and IS_HOME_PATH"
-        echo "export JAVA_HOME=${JAVA_HOME_PATH}" >> ./Build.sh
-        echo "export IS_HOME=${IS_HOME_PATH}" >> ./Build.sh
-      displayName: 'Set Environment Variables for Build.sh'
+        # Add Docker's official GPG key:
+        sudo apt-get update
+        sudo apt-get install ca-certificates curl
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+        
+        # Add the repository to Apt sources:
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      displayName: 'Install Docker'
 
-    - script: ./Build.sh
+    - script: |
+        # Download WSO2 IS 7.0.0 pack
+        wget "https://github.com/wso2/product-is/releases/download/v7.0.0/wso2is-7.0.0.zip"
+        unzip wso2is-7.0.0.zip -d $(Build.SourcesDirectory)
+        rm wso2is-7.0.0.zip
+      displayName: 'Download and Unzip WSO2 IS 7.0.0 Pack'
+
+    - script: |
+        echo "Building the Agent jar files"
+
+        cd SyncAgent-read
+        JAVA_HOME=${{ variables.JAVA_HOME_PATH }} mvn clean install
+        cd ..
+
+        cd SyncAgent-write
+        JAVA_HOME=${{ variables.JAVA_HOME_PATH }} mvn clean install
+        cd ..
+
+        echo "Copying the Agent jar files to the WSO2 IS 7.0.0"
+        rm ${{ variables.IS_HOME_PATH }}/repository/components/dropins/com.sync.tool-1.0-SNAPSHOT.jar
+        cp SyncAgent-read/target/com.sync.tool-1.0-SNAPSHOT.jar ${{ variables.IS_HOME_PATH }}/repository/components/dropins/
+
+        rm ${{ variables.IS_HOME_PATH }}/repository/components/dropins/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar
+        cp SyncAgent-write/target/org.wso2.custom.user.operation.event.listener-1.0-SNAPSHOT.jar ${{ variables.IS_HOME_PATH }}/repository/components/dropins/
+
+        echo "Copying the reference.conf configuration files to the WSO2 IS 7.0.0"
+        rm ${{ variables.IS_HOME_PATH }}/repository/conf/reference.conf
+        cp config/reference.conf ${{ variables.IS_HOME_PATH }}/repository/conf/
+
+        echo "Copying the deployment.toml configuration files to the WSO2 IS 7.0.0"
+        rm ${{ variables.IS_HOME_PATH }}/repository/conf/deployment.toml
+        cp config/deployment.toml ${{ variables.IS_HOME_PATH }}/repository/conf/
+
+        echo "Copying the libraries to the WSO2 IS 7.0.0"
+        cp lib/* ${{ variables.IS_HOME_PATH }}/repository/components/lib/
+        cp dropins/* ${{ variables.IS_HOME_PATH }}/repository/components/dropins/
+
+        ls ${{ variables.IS_HOME_PATH }}/repository/components/lib -la
+        echo "---------------------------------------------------------------------"
+        echo "---------------------------------------------------------------------"
+        ls ${{ variables.IS_HOME_PATH }}/repository/components/dropins -la
+
+        echo  
+        echo "Build Completed Successfully"
       displayName: 'Build Project'
-
-    - script: ./dockerBuildnPush.sh
-      displayName: 'Build and Push Docker Image'
-      env:
-        ACR_NAME: $(ACR_NAME)
-        ACR_LOGIN_SERVER: $(ACR_LOGIN_SERVER)
-        ACR_USERNAME: $(ACR_USERNAME)
-        ACR_PASSWORD: $(ACR_PASSWORD)
-
-- stage: Deploy
-  jobs:
-  - job: DeployJob
-    steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.x'
-      displayName: 'Use Python 3.x'
 
     - task: AzureCLI@2
       inputs:
-        azureSubscription: $(AZURE_SUBSCRIPTION_ID)
-        scriptType: bash
-        scriptLocation: inlineScript
+        addSpnToEnvironment: true
+        azureSubscription: $(AZURE_SERVICE_CONNECTION_NAME)
+        scriptLocation: 'inlineScript'
+        scriptType: 'bash'
         inlineScript: |
-          az aks get-credentials --resource-group $(AZURE_RESOURCE_GROUP) --name $(AKS_NAME) --overwrite-existing
-      displayName: 'Get AKS Credentials'
+          # Login to ACR
+          az acr login --name $ACR_NAME
+          
+          docker build -t $IMAGE_NAME:$TAG .
+          docker tag $IMAGE_NAME:$TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
+          docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG
+      displayName: 'Login to ACR and Build and Push Docker Image'
 
-    - task: InstallSSHKey@0
+# add manual validation for the deployment
+- stage: ManualValidation
+  pool: server
+  jobs:
+  - job: ManualValidationJob
+    displayName: 'Manual Validation'
+    steps:
+    - task: ManualValidation@0
       inputs:
-        sshKeySecureFile: $(SSH_KEY_SECURE_FILE)
-        hostName: $(VM_HOST)
-        user: $(VM_USER)
-        privateKey: $(SSH_PRIVATE_KEY)
-      displayName: 'Install SSH Key'
+        notifyUsers: ''
+        instructions: 'Please review and approve the deployment.'
+        onTimeout: 'reject'
+      displayName: 'Manual Validation Step'
 
+- stage: Deploy
+  pool: 
+    vmImage: 'ubuntu-latest'
+  jobs:
+  - job: DeployJob
+    steps:
     - task: SSH@0
       inputs:
-        sshEndpoint: 'SSH_Service_Connection' # Define a service connection in Azure DevOps
-        runOptions: inline
+        sshEndpoint: $(SSH_EAST)
+        runOptions: 'inline'
+        readyTimeout: '20000'
         inline: |
-          # Clone the repo on the VM
-          git clone https://github.com/your/repo.git
-          cd repo
+          export AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID
+          export AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP
+          export AKS_NAME=$AKS_NAME
 
-          # Configure IS
-          cp path/to/isDeploymentTOML.yaml /path/to/deployment.toml
-          cp path/to/isENV.yaml /path/to/.env
-
-          # Run Deploy.sh
-          export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
-          export AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP)
-          export AKS_NAME=$(AKS_NAME)
-
-      displayName: 'Configure IS on VM'
-
-    - task: SSH@0
-      inputs:
-        sshEndpoint: 'SSH_Service_Connection' # Define a service connection in Azure DevOps
-        runOptions: inline
-        scriptPath: 'deploy/Deploy.sh'
-      displayName: 'Deploy IS on AKS'
+          cd /home/azureuser/wso2-is-sync-manager/deploy
+          chmod +x DeployThroughPipeline.sh
+          ./DeployThroughPipeline.sh
       env:
         AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
         AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
-        AKS_NAME: $(AKS_NAME)
+        AKS_NAME: $(AKS_NAME1)

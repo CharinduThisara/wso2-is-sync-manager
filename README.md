@@ -66,6 +66,7 @@
         # from the project root
         cd deploy && ./Deploy.sh
         ```
+    - (YOU CAN ALSO USE THE AZURE PIPELINE to BUILD the IS PACK WITH AGENTS)
 3. #### Exposing the Load Balancer publically.
     - To Do this find the Public IP related to the AKS Load Balancer and configure a Domain name of it.(<mark>**Domain name**</mark> should be equal to the <mark>**hostname**</mark> mentioned in the deployment.toml)
 

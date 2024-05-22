@@ -73,7 +73,7 @@ data:
     [clustering.properties]
     membershipSchemeClassName = "org.wso2.carbon.membership.scheme.kubernetes.KubernetesMembershipScheme"
     KUBERNETES_NAMESPACE = "wso2is"
-    KUBERNETES_SERVICES = "identity-service"
+    KUBERNETES_SERVICES = "identity-service-active-active"
     KUBERNETES_MASTER_SKIP_SSL_VERIFICATION = true
     USE_DNS = false
 
