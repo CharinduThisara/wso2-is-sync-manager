@@ -174,8 +174,8 @@ stages:
           export AKS_NAME=$AKS_NAME
 
           cd /home/azureuser/wso2-is-sync-manager/deploy
-          chmod +x Deploy.sh
-          ./Deploy.sh
+          chmod +x DeployThroughPipeline.sh
+          ./DeployThroughPipeline.sh
       env:
         AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
         AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
