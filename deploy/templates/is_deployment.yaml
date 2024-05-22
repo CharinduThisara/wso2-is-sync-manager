@@ -57,7 +57,7 @@ spec:
         - name: identity-server-conf
           configMap:
             name: identity-server-conf
-        - name: identity-server-env-active
+        - name: identity-server-env
           configMap:
-            name: identity-server-env
+            name: identity-server-env-active
       serviceAccountName: is-service-account
