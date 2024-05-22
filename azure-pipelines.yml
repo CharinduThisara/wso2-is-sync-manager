@@ -169,9 +169,9 @@ stages:
         runOptions: 'inline'
         readyTimeout: '20000'
         inline: |
-          export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
-          export AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP)
-          export AKS_NAME=$(AKS_NAME)
+          export AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID
+          export AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP
+          export AKS_NAME=$AKS_NAME
 
           cd /home/azureuser/wso2-is-sync-manager/deploy
           chmod +x Deploy.sh
